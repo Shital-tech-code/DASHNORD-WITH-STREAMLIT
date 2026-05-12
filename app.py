@@ -2,75 +2,241 @@ import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 import pandas as pd
 import matplotlib.pyplot as plt
-import datetime
+import matplotlib.dates as mdates
+import plotly.graph_objects as go
 
-# =========================
-# 🔐 LOGIN SYSTEM
-# =========================
-users = {
-    "admin": {"password": "admin123", "role": "admin"},
-    "user1": {"password": "user123", "role": "user"}
+# PAGE CONFIG
+# =====================================================
+st.set_page_config(
+    page_title="🐝 Hive Monitoring Dashboard",
+    page_icon="🐝",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# =====================================================
+# CUSTOM CSS
+# =====================================================
+# =====================================================
+# CUSTOM CSS
+# =====================================================
+st.markdown("""
+<style>
+
+.stApp{
+    background: #f8fafc;
+    color:black;
 }
 
+.main-title{
+    text-align:center;
+    font-size:42px;
+    font-weight:bold;
+    color:#111827;
+    margin-bottom:5px;
+}
+
+.sub-title{
+    text-align:center;
+    color:#374151;
+    margin-bottom:30px;
+}
+
+section[data-testid="stSidebar"]{
+    background:#ffffff;
+    border-right:1px solid #d1d5db;
+}
+
+div[data-testid="metric-container"]{
+    background:white;
+    border-radius:18px;
+    padding:18px;
+    border:1px solid #d1d5db;
+    box-shadow:0px 2px 10px rgba(0,0,0,0.08);
+}
+
+div[data-testid="metric-container"]:hover{
+    transform:scale(1.02);
+    transition:0.3s;
+}
+
+.stButton > button{
+    background:#22c55e;
+    color:white;
+    border-radius:12px;
+    border:none;
+    height:45px;
+    font-weight:bold;
+}
+
+.stDownloadButton > button{
+    background:#2563eb;
+    color:white;
+    border-radius:12px;
+    border:none;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# =====================================================
+# =====================================================
+# LOGIN SYSTEM
+# =====================================================
+
+users = {
+    "admin": {
+        "password": "admin123",
+        "role": "admin"
+    },
+
+    "user1": {
+        "password": "user123",
+        "role": "user1"
+    }
+}
+
+# SESSION
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
+if "role" not in st.session_state:
+    st.session_state.role = ""
+
+if "username" not in st.session_state:
+    st.session_state.username = ""
+
+# =====================================================
+# LOGIN PAGE
+# =====================================================
 def login():
-    st.title("🔐 Hive Dashboard Login")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
 
-    if st.button("Login"):
-        if username in users and users[username]["password"] == password:
-            st.session_state.logged_in = True
-            st.rerun()
-        else:
-            st.error("Invalid credentials")
+    st.markdown("""
+    <style>
 
+    .login-box{
+        background:white;
+        padding:40px;
+        border-radius:20px;
+        box-shadow:0px 4px 20px rgba(0,0,0,0.1);
+        margin-top:60px;
+    }
+
+    </style>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1,1.2,1])
+
+    with col2:
+
+        st.markdown("""
+        <div class="login-box">
+
+        <h1 style='text-align:center;color:#111827;'>
+        🐝 Hive Dashboard
+        </h1>
+
+        <p style='text-align:center;color:gray;'>
+        Smart Beehive Monitoring System
+        </p>
+
+        </div>
+        """, unsafe_allow_html=True)
+
+        username = st.text_input(
+            "👤 Username"
+        )
+
+        password = st.text_input(
+            "🔑 Password",
+            type="password"
+        )
+
+        if st.button(
+            "Login",
+            use_container_width=True
+        ):
+
+            if (
+                username in users and
+                users[username]["password"] == password
+            ):
+
+                st.session_state.logged_in = True
+
+                st.session_state.role = users[username]["role"]
+
+                st.session_state.username = username
+
+                st.success("✅ Login Successful")
+
+                st.rerun()
+
+            else:
+
+                st.error(
+                    "❌ Invalid Username or Password"
+                )
+
+# =====================================================
+# SHOW LOGIN
+# =====================================================
 if not st.session_state.logged_in:
+
     login()
+
     st.stop()
-       # =========================
-# AUTO REFRESH DASHBOARD
-# =========================
+
+# =====================================================
+
+# =====================================================
+# LOGOUT BUTTON
+# =====================================================
+if st.sidebar.button("🚪 Logout"):
+
+    st.session_state.logged_in = False
+
+    st.session_state.role = ""
+
+    st.session_state.username = ""
+
+    st.rerun()
+# =====================================================
+# AUTO REFRESH
+# =====================================================
 st_autorefresh(
-    interval=1200000,   # 20 
-    limit=None,
-    key="dashboard_refresh"
+    interval=1200000,
+    key="refresh"
 )
 
-# =========================
-# PAGE SETTINGS
-# =========================
-st.set_page_config(layout="wide")
-st_autorefresh(interval=1200000, key="refresh")  # 20 min refresh
-
-# =========================
-# LOCATION
-# =========================
-st.sidebar.header("📍 Select Location")
+# =====================================================
+# SIDEBAR
+# =====================================================
+st.sidebar.title("⚙ Dashboard Controls")
 
 location = st.sidebar.selectbox(
-    "Choose Location",
+    "📍 Choose Location",
     ["Pandharkaoda", "Wardha (MGIRI)"]
 )
 
+# =====================================================
+# GOOGLE SHEET URL
+# =====================================================
 if location == "Pandharkaoda":
+
     url = "https://docs.google.com/spreadsheets/d/1gjlu4F-iNqhjrT57mpU7vGQOgXtjMer6i2Z3dDRbrFo/export?format=csv&gid=0"
+
 else:
+
     url = "https://docs.google.com/spreadsheets/d/1gjlu4F-iNqhjrT57mpU7vGQOgXtjMer6i2Z3dDRbrFo/export?format=csv&gid=1479038266"
 
-# =========================
-# # =========================
-# =========================
+# =====================================================
 # LOAD DATA
-# =========================
+# =====================================================
 @st.cache_data(ttl=60)
+
 def load_data(url, location):
 
-    # =========================
-    # LOAD CSV
-    # =========================
     if location == "Pandharkaoda":
 
         df = pd.read_csv(
@@ -79,8 +245,8 @@ def load_data(url, location):
             low_memory=False
         )
 
-        df = df.dropna(axis=1, how='all')   # remove empty columns
-        df = df.iloc[:, 0:10]               # keep correct columns
+        df = df.dropna(axis=1, how='all')
+        df = df.iloc[:,0:10]
 
         df.columns = [
             "Timestamp",
@@ -97,16 +263,10 @@ def load_data(url, location):
 
     else:
 
-        df = pd.read_csv(
-            url,
-            low_memory=False
-        )
+        df = pd.read_csv(url)
 
         df.columns = df.columns.str.strip()
 
-    # =========================
-    # CLEANING
-    # =========================
     df['Timestamp'] = pd.to_datetime(
         df['Timestamp'],
         dayfirst=True,
@@ -120,13 +280,11 @@ def load_data(url, location):
         "Weight 2"
     ]:
 
-        if col in df.columns:
-            df[col] = pd.to_numeric(
-                df[col],
-                errors='coerce'
-            )
+        df[col] = pd.to_numeric(
+            df[col],
+            errors='coerce'
+        )
 
-    # Remove invalid rows
     df = df.dropna(
         subset=[
             'Timestamp',
@@ -135,669 +293,910 @@ def load_data(url, location):
         ]
     )
 
-    # Sort by time
-    df = df.sort_values('Timestamp')
+    return df.sort_values('Timestamp')
 
-    return df
-
-
-# =========================
-# LOAD DATA CALL
-# =========================
+# =====================================================
+# LOAD DATA
+# =====================================================
 df = load_data(url, location)
 
 if df.empty:
-    st.error("No data loaded")
+    st.error("❌ No Data Loaded")
     st.stop()
-# =========================
-# TITLE
-# =========================
-st.title("🐝 Hive Monitoring Dashboard")
-st.markdown(f"### 📍 Location: {location}")
 
-# =========================
+# =====================================================
+# HEADER
+# =====================================================
+st.markdown(
+    '<div class="main-title">🐝 Hive Monitoring Dashboard</div>',
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    f'<div class="sub-title">📍 Smart Beehive Monitoring System | {location}</div>',
+    unsafe_allow_html=True
+)
+
+# =====================================================
 # LIVE DATA
-# =========================
+# =====================================================
 latest = df.iloc[-1]
 
-col1, col2, col3, col4 = st.columns(4)
+w1 = float(latest['Weight 1'])
+w2 = float(latest['Weight 2'])
 
-col1.metric("Temperature", float(latest.get('Temperature', 0)))
-col2.metric("Humidity", float(latest.get('Humidity', 0)))
-col3.metric("Weight 1", float(latest.get('Weight 1', 0)))
-col4.metric("Weight 2", float(latest.get('Weight 2', 0)))
+total = w1 + w2
 
-# ✅ Last updated time
-st.markdown(f"🕒 Last Updated: {latest['Timestamp']}")
+c1,c2,c3,c4,c5 = st.columns(5)
 
-# =========================
+c1.metric(
+    "🌡 Temperature",
+    f"{latest['Temperature']:.1f} °C"
+)
+
+c2.metric(
+    "💧 Humidity",
+    f"{latest['Humidity']:.1f} %"
+)
+
+c3.metric(
+    "⚖ Weight 1",
+    f"{w1:.2f} kg"
+)
+
+c4.metric(
+    "🍯 Weight 2",
+    f"{w2:.2f} kg"
+)
+
+c5.metric(
+    "🐝 Total Weight",
+    f"{total:.2f} kg"
+)
+
+# =====================================================
+# HIVE STATUS
+# =====================================================
+if total > 5:
+    st.success("✅ Hive Status : Healthy & Active")
+
+elif total > 1:
+    st.warning("⚠ Hive Status : Moderate Activity")
+
+else:
+    st.error("❌ Hive Status : Low Activity")
+
+st.info(f"🕒 Last Sensor Update : {latest['Timestamp']}")
+# =====================================================
+# DOWNLOAD BUTTON
+# =====================================================
+csv = df.to_csv(index=False).encode('utf-8')
+
+if st.session_state.role == "admin":
+
+    st.download_button(
+        "⬇ Download CSV Data",
+        csv,
+        "hive_data.csv",
+        "text/csv"
+    )
+
+# =====================================================
 # DATE FILTER
-# =========================
-st.sidebar.header("📅 Filter")
+# =====================================================
+st.sidebar.header("📅 Date Filter")
 
-start_date = st.sidebar.date_input("Start Date", df['Timestamp'].min().date())
-end_date = st.sidebar.date_input("End Date", df['Timestamp'].max().date())
+start_date = st.sidebar.date_input(
+    "Start Date",
+    df['Timestamp'].min().date()
+)
+
+end_date = st.sidebar.date_input(
+    "End Date",
+    df['Timestamp'].max().date()
+)
 
 filtered = df[
     (df['Timestamp'].dt.date >= start_date) &
     (df['Timestamp'].dt.date <= end_date)
 ].copy()
 
-# =========================
-# 📈 REAL-TIME GRAPH
-# =========================
-import matplotlib.dates as mdates
+# =====================================================
+## =====================================================
+# TABS BASED ON ROLE
+# =====================================================
 
-st.markdown("### 📈 Weight Over Time")
+if st.session_state.role == "admin":
 
-# =========================
-# REALTIME GRAPH DATA ONLY
-# =========================
-realtime_df = filtered.iloc[-200:].copy()
+    tab1, tab2, tab3 = st.tabs([
+        "📊 Live Dashboard",
+        "📈 Trends",
+        "📅 Weekly Analytics"
+    ])
 
-fig, ax = plt.subplots(figsize=(10, 4))
+else:
 
-ax.plot(
-    realtime_df['Timestamp'],
-    realtime_df['Weight 1'],
-    label="Weight 1"
-)
+    tab1, tab2 = st.tabs([
+        "📊 Live Dashboard",
+        "📈 Trends"
+    ])
 
-ax.plot(
-    realtime_df['Timestamp'],
-    realtime_df['Weight 2'],
-    label="Weight 2"
-)
-# ✅ CLEAN TIME FORMAT
-ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+# =====================================================
+# TAB 1 : REAL TIME MONITORING
+# =====================================================
+with tab1:
 
-# ✅ Reduce number of labels (VERY IMPORTANT)
-ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+    from datetime import datetime, time
 
-ax.set_xlabel("Time")
-ax.set_ylabel("Weight (kg)")
-ax.legend()
+    st.subheader("📈 Real Time Hive Weight Monitoring")
 
-ax.grid(True, linestyle='--', alpha=0.5)
+    # =========================
+    # CURRENT DATE & TIME
+    # =========================
+    now = datetime.now()
 
-plt.xticks(rotation=30)
-plt.tight_layout()
+    today = now.date()
 
-st.pyplot(fig)
+    # =========================
+    # FILTER TODAY DATA
+    # 5 AM TO CURRENT TIME
+    # =========================
+    start_time = time(5, 0)
 
-# =========================
-# 📊 MODE SELECTOR
-# =========================
-mode = st.radio(
-    "Select Trend Mode",
-    ["Auto", "Daily", "Weekly", "Monthly"],
-    horizontal=True
-)
-# =========================
-# 📊 TIME GROUP FILTER
-# =========================
-time_mode = st.selectbox(
-    "Select Time View",
-    ["Day", "Week", "Month"]
-)
-# =========================
-# =========================
-# 📊 TREND BASED ON FILTER
-# =========================
-st.markdown("### 📊 Weight Trend")
+    realtime_df = filtered[
+        (filtered['Timestamp'].dt.date == today) &
+        (filtered['Timestamp'].dt.time >= start_time) &
+        (filtered['Timestamp'].dt.time <= now.time())
+    ]
 
-plot_df = filtered.copy()
+    # =========================
+    # CHECK IF DATA EXISTS
+    # =========================
+    if realtime_df.empty:
 
-fig, ax = plt.subplots(figsize=(10, 4))
+        st.warning("⚠ No live data available today.")
 
-# =========================
-# 🔹 DAILY VIEW
-# =========================
-if time_mode == "Day":
-    st.info("📅 Daily View")
+    else:
 
-    ax.plot(plot_df['Timestamp'], plot_df['Weight 1'], label="Weight 1")
-    ax.plot(plot_df['Timestamp'], plot_df['Weight 2'], label="Weight 2")
+        # =========================
+        # REDUCE DATA POINTS
+        # =========================
+        plot_df = realtime_df.iloc[::5]
 
-    import matplotlib.dates as mdates
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d %b %H:%M'))
+        # =========================
+        # CURRENT VALUES
+        # =========================
+        latest_w1 = realtime_df['Weight 1'].iloc[-1]
+        latest_w2 = realtime_df['Weight 2'].iloc[-1]
 
-# =========================
-# # =========================
-# # =========================
-# # =========================
-# 🔹 WEEKLY VIEW
-# =========================
-elif time_mode == "Week":
+        col1, col2 = st.columns(2)
 
-    st.info("📅 Weekly View")
+        col1.metric(
+            "🐝 Current Weight 1",
+            f"{latest_w1:.2f} kg"
+        )
 
-    # -------------------------
-    # COPY DATA
-    # -------------------------
-    week_plot_df = plot_df.copy()
+        col2.metric(
+            "🍯 Current Weight 2",
+            f"{latest_w2:.2f} kg"
+        )
 
-    # -------------------------
-    # Convert datetime
-    # -------------------------
-    week_plot_df['Timestamp'] = pd.to_datetime(
-        week_plot_df['Timestamp'],
+        # =========================
+        # LIVE INFO
+        # =========================
+        st.info(
+            f"📡 Live Hive Monitoring | Today's Data | "
+            f"5:00 AM to {now.strftime('%I:%M %p')}"
+        )
+
+        # =========================
+        # GRAPH
+        # =========================
+        fig, ax = plt.subplots(figsize=(12,5))
+
+        # WEIGHT 1
+        ax.plot(
+            plot_df['Timestamp'],
+            plot_df['Weight 1'],
+            color='green',
+            linewidth=2.5,
+            marker='o',
+            markersize=2,
+            label="Weight 1"
+        )
+
+        # WEIGHT 2
+        ax.plot(
+            plot_df['Timestamp'],
+            plot_df['Weight 2'],
+            color='orange',
+            linewidth=2.5,
+            marker='o',
+            markersize=2,
+            label="Weight 2"
+        )
+
+        # =========================
+        # FILL AREA
+        # =========================
+        ax.fill_between(
+            plot_df['Timestamp'],
+            plot_df['Weight 1'],
+            color='green',
+            alpha=0.1
+        )
+
+        ax.fill_between(
+            plot_df['Timestamp'],
+            plot_df['Weight 2'],
+            color='orange',
+            alpha=0.2
+        )
+
+        # =========================
+        # LIGHT THEME
+        # =========================
+        ax.set_facecolor("white")
+
+        fig.patch.set_facecolor("white")
+
+        # TICKS
+        ax.tick_params(colors='black')
+
+        # SPINES
+        ax.spines['bottom'].set_color('black')
+        ax.spines['left'].set_color('black')
+
+        # LABELS
+        ax.set_xlabel(
+            "Time",
+            color='black',
+            fontsize=12
+        )
+
+        ax.set_ylabel(
+            "Weight (kg)",
+            color='black',
+            fontsize=12
+        )
+
+        # TITLE
+        ax.set_title(
+            "Today's Live Hive Weight Trend",
+            color='black',
+            fontsize=16,
+            pad=15
+        )
+
+        # GRID
+        ax.grid(
+            True,
+            linestyle='--',
+            alpha=0.3
+        )
+
+                # LEGEND
+        legend = ax.legend()
+
+        for text in legend.get_texts():
+            text.set_color("black")
+
+        # =========================
+        # CLEAN TIME FORMAT
+        # =========================
+        ax.xaxis.set_major_locator(
+            mdates.HourLocator(interval=2)
+        )
+
+        ax.xaxis.set_major_formatter(
+            mdates.DateFormatter('%I %p')
+        )
+
+        plt.xticks(rotation=0)
+
+        # =========================
+        # SHOW VALUES ON GRAPH
+        # =========================
+        for i in range(len(plot_df)):
+
+            # WEIGHT 1
+            x1 = plot_df['Timestamp'].iloc[i]
+
+            y1 = plot_df['Weight 1'].iloc[i]
+
+            ax.text(
+                x1,
+                y1,
+                f"{y1:.2f}",
+                fontsize=7,
+                color='green'
+            )
+
+            # WEIGHT 2
+            x2 = plot_df['Timestamp'].iloc[i]
+
+            y2 = plot_df['Weight 2'].iloc[i]
+
+            ax.text(
+                x2,
+                y2,
+                f"{y2:.2f}",
+                fontsize=7,
+                color='orange'
+            )
+
+        # =========================
+        # WEIGHT SUMMARY
+        # =========================
+        st.markdown("### 📊 Weight Summary")
+
+        c1, c2, c3 = st.columns(3)
+
+        c1.metric(
+            "📉 Minimum",
+            f"{realtime_df['Weight 2'].min():.2f} kg"
+        )
+
+        c2.metric(
+            "📈 Maximum",
+            f"{realtime_df['Weight 2'].max():.2f} kg"
+        )
+
+        c3.metric(
+            "📊 Average",
+            f"{realtime_df['Weight 2'].mean():.2f} kg"
+        )
+
+        # =========================
+        # DAILY CHANGE
+        # =========================
+        start_weight = realtime_df['Weight 2'].iloc[0]
+
+        change = latest_w2 - start_weight
+
+        st.metric(
+            "📈 Today's Change",
+            f"{change:.2f} kg"
+        )
+        # =========================
+        # STATUS MESSAGE
+        # =========================
+        if change < -0.10:
+
+            st.warning(
+                "⚠ Hive weight significantly decreased today"
+            )
+
+        elif change > 0.10:
+
+            st.success(
+                "🍯 Hive weight increased today"
+            )
+
+        else:
+
+            st.info(
+                "✅ Hive weight stable today"
+            )
+
+        # =========================
+        # SHOW GRAPH
+        # =========================
+        
+        st.pyplot(fig)
+# =====================================================
+# TAB 2
+# =====================================================
+with tab2:
+
+    st.subheader("📊 Trend Dashboard")
+
+    time_mode = st.radio(
+        "Select View",
+        ["Day","Week","Month"],
+        horizontal=True
+    )
+
+    plot_df = filtered.copy()
+
+    # =================================================
+    # DAY VIEW
+    # =================================================
+    if time_mode == "Day":
+
+        fig, ax = plt.subplots(figsize=(12,5))
+
+        ax.plot(
+            plot_df['Timestamp'],
+            plot_df['Weight 1'],
+            color='green',
+            linewidth=2,
+            label="Weight 1"
+        )
+
+        ax.plot(
+            plot_df['Timestamp'],
+            plot_df['Weight 2'],
+            color='orange',
+            linewidth=2,
+            label="Weight 2"
+        )
+
+        ax.legend()
+
+        ax.grid(True)
+
+        plt.xticks(rotation=30)
+
+        st.pyplot(fig)
+
+    # =================================================
+    # WEEK VIEW
+    # =================================================
+    elif time_mode == "Week":
+
+        week_df = plot_df.copy()
+
+        week_df['Week'] = week_df['Timestamp'].dt.to_period('W')
+
+        weekly = week_df.groupby('Week')[['Weight 1','Weight 2']].mean()
+
+        weekly = weekly.reset_index()
+
+        st.subheader("📅 Weekly Cards")
+
+        cols = st.columns(3)
+
+        for i,row in weekly.iterrows():
+
+            col = cols[i % 3]
+
+            with col:
+
+                st.markdown(f"""
+                <div style="
+                background:white;
+                padding:15px;
+                border-radius:15px;
+                margin-bottom:15px;
+                border:1px solid #d1d5db;
+                ">
+                <h4 style="color:white;">📆 {row['Week']}</h4>
+                <p style="color:#cbd5e1;">⚖ W1 Avg : {row['Weight 1']:.2f}</p>
+                <p style="color:#cbd5e1;">🍯 W2 Avg : {row['Weight 2']:.2f}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+        fig, ax = plt.subplots(figsize=(12,5))
+
+        ax.plot(
+            weekly['Week'].astype(str),
+            weekly['Weight 1'],
+            marker='o',
+            linewidth=2,
+            color='lime',
+            label="Weight 1"
+        )
+
+        ax.plot(
+            weekly['Week'].astype(str),
+            weekly['Weight 2'],
+            marker='o',
+            linewidth=2,
+            color='orange',
+            label="Weight 2"
+        )
+
+        ax.legend()
+
+        ax.grid(True)
+
+        plt.xticks(rotation=30)
+
+        st.pyplot(fig)
+
+    # =================================================
+    # MONTH VIEW
+    # =================================================
+    elif time_mode == "Month":
+
+        month_df = plot_df.copy()
+
+        month_df['Month'] = month_df['Timestamp'].dt.to_period('M')
+
+        monthly = month_df.groupby('Month')[['Weight 1','Weight 2']].mean()
+
+        monthly = monthly.reset_index()
+
+        st.subheader("📅 Monthly Analytics")
+
+        fig, ax = plt.subplots(figsize=(12,5))
+
+        ax.bar(
+            monthly['Month'].astype(str),
+            monthly['Weight 1'],
+            label="Weight 1"
+        )
+
+        ax.plot(
+            monthly['Month'].astype(str),
+            monthly['Weight 2'],
+            marker='o',
+            linewidth=3,
+            color='red',
+            label="Weight 2"
+        )
+
+        ax.legend()
+
+        ax.grid(True)
+
+        plt.xticks(rotation=30)
+
+        st.pyplot(fig)
+
+# =====================================================
+# =====================================================
+# # =====================================================
+# TAB 3
+# =====================================================
+
+if st.session_state.role == "admin":
+
+    with tab3:
+
+        st.subheader("📅 Smart Slot Analysis")
+
+        # =================================================
+        # SLOT FUNCTION
+        # =================================================
+        def get_slot(ts):
+
+            h = ts.hour
+
+            if 5 <= h < 9:
+                return "5–9 AM"
+
+            elif 9 <= h < 13:
+                return "9–1 PM"
+
+            elif 13 <= h < 16:
+                return "1–4 PM"
+
+            elif 16 <= h < 19:
+                return "4–7 PM"
+
+            return None
+
+    # =================================================
+    # TREND FUNCTION
+    # =================================================
+    def trend(previous_weight, current_weight):
+
+        if current_weight > previous_weight:
+            return "🟢 Increasing"
+
+        elif current_weight < previous_weight:
+            return "🔴 Decreasing"
+
+        else:
+            return "🟡 Stable"
+
+
+    # =================================================
+    # SLOT DATA
+    # =================================================
+    temp_df = filtered.copy()
+
+    temp_df['Timestamp'] = pd.to_datetime(
+        temp_df['Timestamp'],
         dayfirst=True,
         errors='coerce'
     )
 
-    week_plot_df = week_plot_df.dropna(subset=['Timestamp'])
+    temp_df['Slot'] = temp_df['Timestamp'].apply(get_slot)
 
-    # -------------------------
-    # SHOW DATA FROM APRIL 2026
-    # -------------------------
-    week_plot_df = week_plot_df[
-        week_plot_df['Timestamp'] >= pd.Timestamp("2026-04-01")
-    ]
+    temp_df['Date'] = temp_df['Timestamp'].dt.date
 
-    # -------------------------
-    # MONTH COLUMN
-    # -------------------------
-    week_plot_df['Month'] = week_plot_df['Timestamp'].dt.strftime('%B %Y')
+    temp_df = temp_df.dropna(subset=['Slot'])
 
-    # -------------------------
-    # MONTH SORT
-    # -------------------------
-    week_plot_df['Month Sort'] = week_plot_df['Timestamp'].dt.to_period('M')
-
-    # -------------------------
-    # WEEK PERIOD
-    # -------------------------
-    week_plot_df['Week Period'] = week_plot_df['Timestamp'].dt.to_period('W')
-
-    # -------------------------
-    # WEEK START / END
-    # -------------------------
-    week_plot_df['Week Start'] = week_plot_df['Week Period'].apply(
-        lambda x: x.start_time.date()
-    )
-
-    week_plot_df['Week End'] = week_plot_df['Week Period'].apply(
-        lambda x: x.end_time.date()
-    )
-
-    # -------------------------
-    # WEEK LABEL
-    # -------------------------
-    week_plot_df['Week Label'] = week_plot_df.apply(
-        lambda x:
-        f"{x['Week Start'].strftime('%d %b')} → "
-        f"{x['Week End'].strftime('%d %b')}",
-        axis=1
-    )
-
-    # -------------------------
-    # WEEKLY SUMMARY
-    # -------------------------
-    week_df = week_plot_df.groupby(
-        [
-            'Month',
-            'Month Sort',
-            'Week Period',
-            'Week Label'
-        ]
-    )[
-        ['Weight 1', 'Weight 2']
-    ].mean().reset_index()
-
-    # -------------------------
-    # SORT WEEKS
-    # -------------------------
-    week_df = week_df.sort_values(
-        by=['Month Sort', 'Week Period'],
-        ascending=False
-    )
-
-    # -------------------------
-    # MONTH ORDER
-    # -------------------------
-    month_order = (
-        week_df['Month']
-        .drop_duplicates()
-        .tolist()
-    )
-
-    # -------------------------
-    # MONTH SELECTOR
-    # -------------------------
-    selected_month = st.selectbox(
-        "📅 Select Month",
-        month_order
-    )
-
-    # -------------------------
-    # FILTER MONTH
-    # -------------------------
-    month_weeks = week_df[
-        week_df['Month'] == selected_month
-    ]
-
-    # -------------------------
-    # SESSION STATE
-    # -------------------------
-    available_weeks = month_weeks['Week Period'].astype(str).tolist()
-
-    if (
-        "selected_week" not in st.session_state
-        or st.session_state.selected_week not in available_weeks
-    ):
-
-        st.session_state.selected_week = available_weeks[0]
-
-    # -------------------------
-    # MONTH TITLE
-    # -------------------------
-    st.markdown(f"## 📆 Weeks in {selected_month}")
-
-    # -------------------------
-    # WEEK CARDS
-    # -------------------------
-    cols = st.columns(3)
-
-    for i, row in month_weeks.iterrows():
-
-        week_key = str(row['Week Period'])
-
-        col = cols[i % 3]
-
-        is_selected = (
-            st.session_state.selected_week == week_key
-        )
-
-        border = (
-            "3px solid #4CAF50"
-            if is_selected
-            else "1px solid #ddd"
-        )
-
-        bg = (
-            "#e8f5e9"
-            if is_selected
-            else "#ffffff"
-        )
-
-        # -------------------------
-        # BUTTON
-        # -------------------------
-        if col.button(
-            f"📅 {row['Week Label']}",
-            key=week_key,
-            use_container_width=True
-        ):
-            st.session_state.selected_week = week_key
-
-        # -------------------------
-        # CARD
-        # -------------------------
-        col.markdown(
-            f"""
-            <div style="
-                padding:12px;
-                border-radius:12px;
-                border:{border};
-                background-color:{bg};
-                margin-bottom:15px;
-                text-align:center;
-            ">
-
-            <b>{row['Week Label']}</b>
-
-            <hr>
-
-            ⚖ Avg W1:
-            <b>{row['Weight 1']:.2f}</b>
-
-            <br><br>
-
-            ⚖ Avg W2:
-            <b>{row['Weight 2']:.2f}</b>
-
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    # =========================
-    # FILTER SELECTED WEEK
-    # =========================
-    selected_week = st.session_state.selected_week
-
-    selected_week_df = week_plot_df[
-        week_plot_df['Week Period'].astype(str)
-        == selected_week
-    ]
-
-    # =========================
-    # DAILY BREAKDOWN
-    # =========================
-    daily = selected_week_df.groupby(
-        selected_week_df['Timestamp'].dt.date
-    )[
-        ['Weight 1', 'Weight 2']
-    ].mean().reset_index()
-
-    # Rename column
-    daily.columns = ['Date', 'Weight 1', 'Weight 2']
-
-    # =========================
-    # SELECTED WEEK LABEL
-    # =========================
-    selected_label = month_weeks[
-        month_weeks['Week Period'].astype(str)
-        == selected_week
-    ]['Week Label'].values[0]
-
-    st.markdown(f"## 📈 Trend for {selected_label}")
-
-    # =========================
-    # GRAPH
-    # =========================
-    fig, ax = plt.subplots(figsize=(10, 5))
-
-    ax.plot(
-        daily['Date'],
-        daily['Weight 1'],
-        marker='o',
-        linewidth=2,
-        label="Weight 1"
-    )
-
-    ax.plot(
-        daily['Date'],
-        daily['Weight 2'],
-        marker='o',
-        linewidth=2,
-        label="Weight 2"
-    )
-
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Weight")
-    ax.legend()
-
-    plt.xticks(rotation=45)
-
-    st.pyplot(fig)
-# =========================
+    temp_df = temp_df.sort_values("Timestamp")
 
 
-# SLOT FUNCTION
-# =========================
-def get_slot(ts):
-    h = ts.hour
-    if 5 <= h < 9:
-        return "5–9 AM"
-    elif 9 <= h < 13:
-        return "9–1 PM"
-    elif 13 <= h < 16:
-        return "1–4 PM"
-    elif 16 <= h < 19:
-        return "4–7 PM"
-    return None
+    # =================================================
+    # EMPTY CHECK
+    # =================================================
+    if temp_df.empty:
 
-# =========================
-# =========================
-# =========================
-# SLOT FUNCTION
-# =========================
-def get_slot(ts):
-
-    h = ts.hour
-
-    if 5 <= h < 9:
-        return "5–9 AM"
-
-    elif 9 <= h < 13:
-        return "9–1 PM"
-
-    elif 13 <= h < 16:
-        return "1–4 PM"
-
-    elif 16 <= h < 19:
-        return "4–7 PM"
-
-    return None
-
-
-# =========================
-# TREND FUNCTION
-# =========================
-def trend(previous_weight, current_weight):
-
-    if current_weight > previous_weight:
-        return "⬆ Increasing"
-
-    elif current_weight < previous_weight:
-        return "⬇ Decreasing"
+        st.warning("⚠ No slot data available")
 
     else:
-        return "➡ Stable"
+
+        # =================================================
+        # AVAILABLE DATES
+        # =================================================
+        unique_dates = sorted(temp_df['Date'].unique())
+
+        min_date = min(unique_dates)
+
+        max_date = max(unique_dates)
 
 
-# =========================
-# SLOT DATA
-# =========================
-temp_df = filtered.copy()
+        # =================================================
+        # DATE PICKERS
+        # =================================================
+        col1, col2 = st.columns(2)
 
-# Ensure datetime format
-temp_df['Timestamp'] = pd.to_datetime(
-    temp_df['Timestamp'],
-    dayfirst=True
-)
+        with col1:
 
-# Create Slot + Date
-temp_df['Slot'] = temp_df['Timestamp'].apply(get_slot)
-temp_df['Date'] = temp_df['Timestamp'].dt.date
+            date1 = st.date_input(
+                "📅 Previous Date",
+                value=min_date,
+                min_value=min_date,
+                max_value=max_date,
+                key="slot_date1"
+            )
 
-# Remove empty slot rows
-temp_df = temp_df.dropna(subset=['Slot'])
+        with col2:
 
-# Sort data
-temp_df = temp_df.sort_values("Timestamp")
-
-# Check empty
-if temp_df.empty:
-    st.warning("No slot data available")
-    st.stop()
-
-
-# =========================
-# AVAILABLE DATES
-# =========================
-unique_dates = sorted(temp_df['Date'].unique())
-
-min_date = min(unique_dates)
-max_date = max(unique_dates)
+            date2 = st.date_input(
+                "📅 Current Date",
+                value=max_date,
+                min_value=min_date,
+                max_value=max_date,
+                key="slot_date2"
+            )
 
 
-# =========================
-# CALENDAR DATE PICKER
-# =========================
-st.markdown("## 📅 Select Dates For Slot Analysis")
+        # =================================================
+        # CONVERT TO DATE
+        # =================================================
+        date1 = pd.to_datetime(date1).date()
 
-col1, col2 = st.columns(2)
-
-date1 = col1.date_input(
-    "📅 Select Previous Date",
-    value=min_date,
-    min_value=min_date,
-    max_value=max_date
-)
-
-date2 = col2.date_input(
-    "📅 Select Current Date",
-    value=max_date,
-    min_value=min_date,
-    max_value=max_date
-)
-
-# Convert to date
-date1 = pd.to_datetime(date1).date()
-date2 = pd.to_datetime(date2).date()
+        date2 = pd.to_datetime(date2).date()
 
 
-# =========================
-# VALIDATION
-# =========================
-if date1 == date2:
+        # =================================================
+        # VALIDATION
+        # =================================================
+        if date1 == date2:
 
-    st.warning("⚠ Please select different dates")
+            st.warning("⚠ Please select different dates")
 
-elif date1 not in unique_dates:
+        else:
 
-    st.warning(f"⚠ No data available for {date1}")
+            # =================================================
+            # SLOT ANALYSIS
+            # =================================================
+            all_results = []
 
-elif date2 not in unique_dates:
+            slots = [
+                "5–9 AM",
+                "9–1 PM",
+                "1–4 PM",
+                "4–7 PM"
+            ]
 
-    st.warning(f"⚠ No data available for {date2}")
+            for slot in slots:
 
-else:
+                d1 = temp_df[
+                    (temp_df['Date'] == date1) &
+                    (temp_df['Slot'] == slot)
+                ]
 
-    # =========================
-    # SLOT COMPARISON
-    # =========================
-    all_results = []
+                d2 = temp_df[
+                    (temp_df['Date'] == date2) &
+                    (temp_df['Slot'] == slot)
+                ]
 
-    slots = [
-        "5–9 AM",
-        "9–1 PM",
-        "1–4 PM",
-        "4–7 PM"
-    ]
-
-    for slot in slots:
-
-        # Previous Day Data
-        d1 = temp_df[
-            (temp_df['Date'] == date1) &
-            (temp_df['Slot'] == slot)
-        ]
-
-        # Current Day Data
-        d2 = temp_df[
-            (temp_df['Date'] == date2) &
-            (temp_df['Slot'] == slot)
-        ]
-
-        # Skip missing slots
-        if d1.empty or d2.empty:
-            continue
-
-        # -------------------------
-        # Average Weights
-        # -------------------------
-        w1_d1 = round(d1['Weight 1'].mean(), 2)
-        w1_d2 = round(d2['Weight 1'].mean(), 2)
-
-        w2_d1 = round(d1['Weight 2'].mean(), 2)
-        w2_d2 = round(d2['Weight 2'].mean(), 2)
-
-        # -------------------------
-        # Weight Changes
-        # -------------------------
-        w1_change = round(w1_d2 - w1_d1, 2)
-        w2_change = round(w2_d2 - w2_d1, 2)
-
-        # -------------------------
-        # Store Results
-        # -------------------------
-        all_results.append([
-
-            slot,
-
-            w1_d1,
-            w1_d2,
-            w1_change,
-            trend(w1_d1, w1_d2),
-
-            w2_d1,
-            w2_d2,
-            w2_change,
-            trend(w2_d1, w2_d2),
-
-            len(d1),
-            len(d2)
-        ])
+                if d1.empty or d2.empty:
+                    continue
 
 
-    # =========================
-    # CREATE DATAFRAME
-    # =========================
-    all_df = pd.DataFrame(all_results, columns=[
+                # =================================================
+                # AVERAGES
+                # =================================================
+                w1_d1 = round(d1['Weight 1'].mean(), 2)
+                w1_d2 = round(d2['Weight 1'].mean(), 2)
 
-        "Slot",
-
-        "W1 Prev Day",
-        "W1 Current Day",
-        "W1 Change",
-        "W1 Trend",
-
-        "W2 Prev Day",
-        "W2 Current Day",
-        "W2 Change",
-        "W2 Trend",
-
-        "Records Prev",
-        "Records Current"
-    ])
+                w2_d1 = round(d1['Weight 2'].mean(), 2)
+                w2_d2 = round(d2['Weight 2'].mean(), 2)
 
 
-    # =========================
-    # DISPLAY TABLE
-    # =========================
-    st.markdown("## 📊 Slot Comparison Analysis")
+                # =================================================
+                # CHANGES
+                # =================================================
+                w1_change = round(w1_d2 - w1_d1, 2)
 
-    st.dataframe(
-        all_df,
-        width="stretch"
-    )
+                w2_change = round(w2_d2 - w2_d1, 2)
 
 
-    # =========================
-    # SLOT TREND GRAPH
-    # =========================
-    st.markdown("## 📈 Slot Trend Graph")
+                # =================================================
+                # SAVE RESULTS
+                # =================================================
+                all_results.append([
 
-    fig, ax = plt.subplots(figsize=(10, 5))
+                    slot,
 
-    ax.plot(
-        all_df['Slot'],
-        all_df['W1 Prev Day'],
-        marker='o',
-        label=f"W1 {date1}"
-    )
+                    w1_d1,
+                    w1_d2,
+                    w1_change,
+                    trend(w1_d1, w1_d2),
 
-    ax.plot(
-        all_df['Slot'],
-        all_df['W1 Current Day'],
-        marker='o',
-        label=f"W1 {date2}"
-    )
+                    w2_d1,
+                    w2_d2,
+                    w2_change,
+                    trend(w2_d1, w2_d2),
 
-    ax.plot(
-        all_df['Slot'],
-        all_df['W2 Prev Day'],
-        marker='o',
-        linestyle='--',
-        label=f"W2 {date1}"
-    )
+                    len(d1),
+                    len(d2)
+                ])
 
-    ax.plot(
-        all_df['Slot'],
-        all_df['W2 Current Day'],
-        marker='o',
-        linestyle='--',
-        label=f"W2 {date2}"
-    )
 
-    ax.set_xlabel("Time Slot")
-    ax.set_ylabel("Weight")
-    ax.legend()
+            # =================================================
+            # DATAFRAME
+            # =================================================
+            all_df = pd.DataFrame(all_results, columns=[
 
-    plt.xticks(rotation=15)
+                "Slot",
 
-    st.pyplot(fig)
+                "W1 Prev",
+                "W1 Current",
+                "W1 Change",
+                "W1 Trend",
+
+                "W2 Prev",
+                "W2 Current",
+                "W2 Change",
+                "W2 Trend",
+
+                "Records Prev",
+                "Records Current"
+            ])
+
+
+            # =================================================
+            # EMPTY RESULT CHECK
+            # =================================================
+            if all_df.empty:
+
+                st.warning("⚠ No slot comparison data available")
+
+            else:
+
+                # =================================================
+                # SLOT SUMMARY CARDS
+                # =================================================
+                st.markdown("### 🐝 Slot Health Cards")
+
+                cols = st.columns(len(all_df))
+
+                for i, row in all_df.iterrows():
+
+                    with cols[i]:
+
+                        st.markdown(f"""
+                        <div style="
+                            background:linear-gradient(135deg,#1e293b,#0f172a);
+                            padding:18px;
+                            border-radius:18px;
+                            text-align:center;
+                            border:1px solid #334155;
+                            box-shadow:0px 0px 15px rgba(0,255,255,0.15);
+                            margin-bottom:10px;
+                        ">
+
+                        <h4 style="color:#38bdf8;">
+                        {row['Slot']}
+                        </h4>
+
+                        <p style="color:white;font-size:18px;">
+                        ⚖ W1 : {row['W1 Current']}
+                        </p>
+
+                        <p style="color:white;font-size:18px;">
+                        🍯 W2 : {row['W2 Current']}
+                        </p>
+
+                        <p style="color:#22c55e;font-size:16px;">
+                        {row['W1 Trend']}
+                        </p>
+
+                        </div>
+                        """, unsafe_allow_html=True)
+
+
+                # =================================================
+                # DATA TABLE
+                # =================================================
+                st.markdown("### 📊 Slot Comparison Table")
+
+                st.dataframe(
+                    all_df,
+                    use_container_width=True
+                )
+
+
+                # =================================================
+                # SLOT TREND GRAPH
+                # =================================================
+                st.markdown("### 📈 Slot Trend Graph")
+
+                fig, ax = plt.subplots(figsize=(12,5))
+
+                ax.plot(
+                    all_df['Slot'],
+                    all_df['W1 Prev'],
+                    marker='o',
+                    linewidth=3,
+                    color='cyan',
+                    label=f"W1 {date1}"
+                )
+
+                ax.plot(
+                    all_df['Slot'],
+                    all_df['W1 Current'],
+                    marker='o',
+                    linewidth=3,
+                    color='lime',
+                    label=f"W1 {date2}"
+                )
+
+                ax.plot(
+                    all_df['Slot'],
+                    all_df['W2 Prev'],
+                    marker='o',
+                    linewidth=3,
+                    linestyle='--',
+                    color='orange',
+                    label=f"W2 {date1}"
+                )
+
+                ax.plot(
+                    all_df['Slot'],
+                    all_df['W2 Current'],
+                    marker='o',
+                    linewidth=3,
+                    linestyle='--',
+                    color='red',
+                    label=f"W2 {date2}"
+                )
+
+                ax.set_facecolor("#0f172a")
+
+                fig.patch.set_facecolor("#0f172a")
+
+                ax.tick_params(colors='white')
+
+                ax.spines['bottom'].set_color('white')
+
+                ax.spines['left'].set_color('white')
+
+                ax.set_xlabel(
+                    "Time Slot",
+                    color='white'
+                )
+
+                ax.set_ylabel(
+                    "Weight",
+                    color='white'
+                )
+
+                ax.legend()
+
+                ax.grid(alpha=0.3)
+
+                st.pyplot(fig)
+
+
+                # =================================================
+                # DOWNLOAD BUTTON
+                # =================================================
+                slot_csv = all_df.to_csv(index=False).encode('utf-8')
+
+                st.download_button(
+                    "⬇ Download Slot Analysis CSV",
+                    slot_csv,
+                    "slot_analysis.csv",
+                    "text/csv"
+                )
