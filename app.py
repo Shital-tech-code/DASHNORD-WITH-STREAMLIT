@@ -755,7 +755,7 @@ with tab2:
 
                 st.markdown(f"""
                 <div style="
-                background:white;
+                background:black;
                 padding:15px;
                 border-radius:15px;
                 margin-bottom:15px;
