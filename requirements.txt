@@ -6,4 +6,5 @@ gspread
 google-auth
 oauth2client
 openpyxl
+plotly
 streamlit-autorefresh
