@@ -15,11 +15,46 @@ st.set_page_config(
 )
 
 # =====================================================
+# PAGE CONFIG
+# =====================================================
+st.set_page_config(
+    page_title="Hive Dashboard",
+    layout="wide"
+)
+
+# =====================================================
+# MAIN HEADER
+# =====================================================
+st.markdown("""
+<div style="
+background:linear-gradient(135deg,#111827,#1f2937);
+padding:25px;
+border-radius:20px;
+margin-bottom:20px;
+">
+
+<h1 style="
+color:white;
+text-align:center;
+">
+Smart Hive Monitoring System
+</h1>
+
+<p style="
+color:#cbd5e1;
+text-align:center;
+font-size:18px;
+">
+Real-Time IoT Based Bee Hive  Dashboard
+</p>
+
+</div>
+""", unsafe_allow_html=True)
+
+# =====================================================
 # CUSTOM CSS
 # =====================================================
-# =====================================================
-# CUSTOM CSS
-# =====================================================
+
 st.markdown("""
 <style>
 
@@ -79,8 +114,6 @@ div[data-testid="metric-container"]:hover{
 </style>
 """, unsafe_allow_html=True)
 
-# =====================================================
-# =====================================================
 # LOGIN SYSTEM
 # =====================================================
 
@@ -188,8 +221,6 @@ if not st.session_state.logged_in:
     st.stop()
 
 # =====================================================
-
-# =====================================================
 # LOGOUT BUTTON
 # =====================================================
 if st.sidebar.button("🚪 Logout"):
@@ -268,22 +299,25 @@ def load_data(url, location):
         df.columns = df.columns.str.strip()
 
     df['Timestamp'] = pd.to_datetime(
-        df['Timestamp'],
-        dayfirst=True,
+    df['Timestamp'],
+    format='mixed',
+    dayfirst=True,
+    errors='coerce'
+)
+    
+    for col in [
+    "Temperature",
+    "Humidity",
+    "Weight 1",
+    "Weight 2",
+    "Latitude",
+    "Longitude"
+]:
+
+     df[col] = pd.to_numeric(
+        df[col],
         errors='coerce'
     )
-
-    for col in [
-        "Temperature",
-        "Humidity",
-        "Weight 1",
-        "Weight 2"
-    ]:
-
-        df[col] = pd.to_numeric(
-            df[col],
-            errors='coerce'
-        )
 
     df = df.dropna(
         subset=[
@@ -400,8 +434,6 @@ filtered = df[
     (df['Timestamp'].dt.date >= start_date) &
     (df['Timestamp'].dt.date <= end_date)
 ].copy()
-
-# =====================================================
 ## =====================================================
 # TABS BASED ON ROLE
 # =====================================================
@@ -422,6 +454,7 @@ else:
     ])
 
 # =====================================================
+# T# =====================================================
 # TAB 1 : REAL TIME MONITORING
 # =====================================================
 with tab1:
@@ -439,7 +472,6 @@ with tab1:
 
     # =========================
     # FILTER TODAY DATA
-    # 5 AM TO CURRENT TIME
     # =========================
     start_time = time(5, 0)
 
@@ -450,242 +482,295 @@ with tab1:
     ]
 
     # =========================
-    # CHECK IF DATA EXISTS
     # =========================
-    if realtime_df.empty:
+# EMPTY CHECK
+# =========================
+# =========================
+# EMPTY CHECK
+# =========================
+if realtime_df.empty:
 
-        st.warning("⚠ No live data available today.")
+    st.error("🔴 MGIRI Hive Device Offline")
 
-    else:
+    # LAST AVAILABLE DATA
+    if not filtered.empty:
 
-        # =========================
-        # REDUCE DATA POINTS
-        # =========================
-        plot_df = realtime_df.iloc[::5]
+        last_record = filtered.iloc[-1]
 
-        # =========================
-        # CURRENT VALUES
-        # =========================
-        latest_w1 = realtime_df['Weight 1'].iloc[-1]
-        latest_w2 = realtime_df['Weight 2'].iloc[-1]
-
-        col1, col2 = st.columns(2)
-
-        col1.metric(
-            "🐝 Current Weight 1",
-            f"{latest_w1:.2f} kg"
-        )
-
-        col2.metric(
-            "🍯 Current Weight 2",
-            f"{latest_w2:.2f} kg"
-        )
-
-        # =========================
-        # LIVE INFO
-        # =========================
         st.info(
-            f"📡 Live Hive Monitoring | Today's Data | "
-            f"5:00 AM to {now.strftime('%I:%M %p')}"
+            f"🕒 Last Update: "
+            f"{last_record['Timestamp']}"
         )
-
-        # =========================
-        # GRAPH
-        # =========================
-        fig, ax = plt.subplots(figsize=(12,5))
-
-        # WEIGHT 1
-        ax.plot(
-            plot_df['Timestamp'],
-            plot_df['Weight 1'],
-            color='green',
-            linewidth=2.5,
-            marker='o',
-            markersize=2,
-            label="Weight 1"
-        )
-
-        # WEIGHT 2
-        ax.plot(
-            plot_df['Timestamp'],
-            plot_df['Weight 2'],
-            color='orange',
-            linewidth=2.5,
-            marker='o',
-            markersize=2,
-            label="Weight 2"
-        )
-
-        # =========================
-        # FILL AREA
-        # =========================
-        ax.fill_between(
-            plot_df['Timestamp'],
-            plot_df['Weight 1'],
-            color='green',
-            alpha=0.1
-        )
-
-        ax.fill_between(
-            plot_df['Timestamp'],
-            plot_df['Weight 2'],
-            color='orange',
-            alpha=0.2
-        )
-
-        # =========================
-        # LIGHT THEME
-        # =========================
-        ax.set_facecolor("white")
-
-        fig.patch.set_facecolor("white")
-
-        # TICKS
-        ax.tick_params(colors='black')
-
-        # SPINES
-        ax.spines['bottom'].set_color('black')
-        ax.spines['left'].set_color('black')
-
-        # LABELS
-        ax.set_xlabel(
-            "Time",
-            color='black',
-            fontsize=12
-        )
-
-        ax.set_ylabel(
-            "Weight (kg)",
-            color='black',
-            fontsize=12
-        )
-
-        # TITLE
-        ax.set_title(
-            "Today's Live Hive Weight Trend",
-            color='black',
-            fontsize=16,
-            pad=15
-        )
-
-        # GRID
-        ax.grid(
-            True,
-            linestyle='--',
-            alpha=0.3
-        )
-
-                # LEGEND
-        legend = ax.legend()
-
-        for text in legend.get_texts():
-            text.set_color("black")
-
-        # =========================
-        # CLEAN TIME FORMAT
-        # =========================
-        ax.xaxis.set_major_locator(
-            mdates.HourLocator(interval=2)
-        )
-
-        ax.xaxis.set_major_formatter(
-            mdates.DateFormatter('%I %p')
-        )
-
-        plt.xticks(rotation=0)
-
-        # =========================
-        # SHOW VALUES ON GRAPH
-        # =========================
-        for i in range(len(plot_df)):
-
-            # WEIGHT 1
-            x1 = plot_df['Timestamp'].iloc[i]
-
-            y1 = plot_df['Weight 1'].iloc[i]
-
-            ax.text(
-                x1,
-                y1,
-                f"{y1:.2f}",
-                fontsize=7,
-                color='green'
-            )
-
-            # WEIGHT 2
-            x2 = plot_df['Timestamp'].iloc[i]
-
-            y2 = plot_df['Weight 2'].iloc[i]
-
-            ax.text(
-                x2,
-                y2,
-                f"{y2:.2f}",
-                fontsize=7,
-                color='orange'
-            )
-
-        # =========================
-        # WEIGHT SUMMARY
-        # =========================
-        st.markdown("### 📊 Weight Summary")
-
-        c1, c2, c3 = st.columns(3)
-
-        c1.metric(
-            "📉 Minimum",
-            f"{realtime_df['Weight 2'].min():.2f} kg"
-        )
-
-        c2.metric(
-            "📈 Maximum",
-            f"{realtime_df['Weight 2'].max():.2f} kg"
-        )
-
-        c3.metric(
-            "📊 Average",
-            f"{realtime_df['Weight 2'].mean():.2f} kg"
-        )
-
-        # =========================
-        # DAILY CHANGE
-        # =========================
-        start_weight = realtime_df['Weight 2'].iloc[0]
-
-        change = latest_w2 - start_weight
 
         st.metric(
-            "📈 Today's Change",
-            f"{change:.2f} kg"
+            "🐝 Last Weight",
+            f"{last_record['Weight 2']:.2f} kg"
         )
+
+    st.warning("📡 Waiting for internet connection...")
+
+else:
+
+    # =========================
+    # DATA
+    # =========================
+    plot_df = realtime_df
+
+    latest_w1 = realtime_df['Weight 1'].iloc[-1]
+
+    latest_w2 = realtime_df['Weight 2'].iloc[-1]
+
+    start_weight = realtime_df['Weight 2'].iloc[0]
+
+    change = latest_w2 - start_weight
+
+    # =========================
+    # METRIC CARDS
+    # =========================
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric(
+        "🐝 Current Weight 1",
+        f"{latest_w1:.2f} kg"
+    )
+
+    col2.metric(
+        "🍯 Current Weight 2",
+        f"{latest_w2:.2f} kg"
+    )
+
+    col3.metric(
+        "📈 Daily Change",
+        f"{change:.2f} kg"
+    )
+
+    # =========================
+    # =========================
+# LIVE STATUS
+# =========================
+status1, status2, status3 = st.columns(3)
+
+status1.success("🟢 Device Online")
+
+status2.info(
+    f"🕒 Updated: "
+    f"{realtime_df['Timestamp'].iloc[-1].strftime('%I:%M %p')}"
+)
+
+status3.warning("📡 Live Monitoring Active")
+
+# =========================
+# LIVE INFO BOX
+# =========================
+st.markdown("""
+    <div style="
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    padding:15px;
+    border-radius:15px;
+    color:white;
+    font-size:18px;
+    font-weight:600;
+    margin-bottom:20px;
+    ">
+    📡 Real-Time Hive Monitoring Dashboard
+    </div>
+    """, unsafe_allow_html=True)
+
+# =========================
+# MODERN SPLINE AREA GRAPH
+# =========================
+fig = go.Figure()
+
+# WEIGHT 1
+fig.add_trace(go.Scatter(
+    x=plot_df['Timestamp'],
+    y=plot_df['Weight 1'],
+    mode='lines',
+    name='Weight 1',
+
+    line=dict(
+        color='#00FFB3',
+        width=5,
+        shape='spline'
+    ),
+
+    fill='tozeroy',
+
+    fillcolor='rgba(0,255,179,0.25)'
+))
+
+# WEIGHT 2
+fig.add_trace(go.Scatter(
+    x=plot_df['Timestamp'],
+    y=plot_df['Weight 2'],
+    mode='lines',
+    name='Weight 2',
+
+    line=dict(
+        color='#FF6B3D',
+        width=5,
+        shape='spline'
+    ),
+
+    fill='tozeroy',
+
+    fillcolor='rgba(255,107,61,0.25)'
+))
+
+# =========================
+# GRAPH DESIGN
+# =========================
+fig.update_layout(
+
+    title={
+        'text': "📈 Real-Time Hive Weight Analysis",
+        'x': 0.5,
+        'xanchor': 'center',
+
+        'font': dict(
+            size=24,
+            color='white'
+        )
+    },
+
+    template="plotly_dark",
+
+    height=520,
+
+    hovermode='x unified',
+
+    paper_bgcolor='#0f172a',
+
+    plot_bgcolor='#0f172a',
+
+    font=dict(
+        color='white',
+        size=16
+    ),
+
+    margin=dict(
+        l=20,
+        r=20,
+        t=70,
+        b=20
+    ),
+
+    legend=dict(
+        orientation="h",
+
+        yanchor="bottom",
+        y=1.02,
+
+        xanchor="right",
+        x=1,
+
+        font=dict(
+            size=15,
+            color='white'
+        ),
+
+        bgcolor='rgba(0,0,0,0)'
+    ),
+
+    xaxis=dict(
+
+        title="Time",
+
+        showgrid=False,
+
+        title_font=dict(
+            size=18,
+            color='white'
+        ),
+
+        tickfont=dict(
+            size=13,
+            color='white'
+        )
+    ),
+
+    yaxis=dict(
+
+        title="Weight (kg)",
+
+        gridcolor='rgba(255,255,255,0.1)',
+
+        title_font=dict(
+            size=18,
+            color='white'
+        ),
+
+        tickfont=dict(
+            size=13,
+            color='white'
+        )
+    )
+)
+
+# =========================
+# AUTO ZOOM
+# =========================
+fig.update_yaxes(
+    autorange=True,
+    fixedrange=False
+)
+
+# =========================
+# SHOW GRAPH
+# =========================
+st.plotly_chart(
+    fig,
+    width='stretch'
+)
         # =========================
-        # STATUS MESSAGE
-        # =========================
-        if change < -0.10:
+# WEIGHT SUMMARY
+# =========================
+st.markdown("### 📊 Weight Summary")
 
-            st.warning(
-                "⚠ Hive weight significantly decreased today"
-            )
+c1, c2, c3 = st.columns(3)
 
-        elif change > 0.10:
+c1.metric(
+    "📉 Minimum",
+    f"{realtime_df['Weight 2'].min():.2f} kg"
+)
 
-            st.success(
-                "🍯 Hive weight increased today"
-            )
+c2.metric(
+    "📈 Maximum",
+    f"{realtime_df['Weight 2'].max():.2f} kg"
+)
 
-        else:
+c3.metric(
+    "📊 Average",
+    f"{realtime_df['Weight 2'].mean():.2f} kg"
+)
 
-            st.info(
-                "✅ Hive weight stable today"
-            )
+# =========================
+# SMART ALERTS
+# =========================
+st.markdown("### 🚨 Smart Alerts")
 
-        # =========================
-        # SHOW GRAPH
-        # =========================
+if latest['Temperature'] > 40:
+
+    st.error("🔥 High Temperature Detected")
+
+if change < -1:
+
+    st.warning("⚠ Possible Swarming Activity")
+
+elif change > 1:
+
+    st.success("🍯 Strong Honey Collection Activity")
+
+else:
+
+    st.info("✅ Hive Weight Stable")
+            
+# =========================
         
-        st.pyplot(fig)
 # =====================================================
-# TAB 2
+# # =====================================================
+# =====================================================
+# TAB 2 : TREND DASHBOARD
 # =====================================================
 with tab2:
 
@@ -693,7 +778,7 @@ with tab2:
 
     time_mode = st.radio(
         "Select View",
-        ["Day","Week","Month"],
+        ["Day", "Week", "Month"],
         horizontal=True
     )
 
@@ -704,31 +789,128 @@ with tab2:
     # =================================================
     if time_mode == "Day":
 
-        fig, ax = plt.subplots(figsize=(12,5))
+        st.markdown("### 📈 Daily Weight Trend")
 
-        ax.plot(
-            plot_df['Timestamp'],
-            plot_df['Weight 1'],
-            color='green',
-            linewidth=2,
-            label="Weight 1"
+        fig = go.Figure()
+
+        # WEIGHT 1
+        fig.add_trace(go.Scatter(
+            x=plot_df['Timestamp'],
+            y=plot_df['Weight 1'],
+            mode='lines',
+            name='🐝 Weight 1',
+
+            line=dict(
+                color='#00FFB3',
+                width=6,
+                shape='spline'
+            ),
+
+            fill='tozeroy',
+
+            fillcolor='rgba(0,255,179,0.30)'
+        ))
+
+        # WEIGHT 2
+        fig.add_trace(go.Scatter(
+            x=plot_df['Timestamp'],
+            y=plot_df['Weight 2'],
+            mode='lines',
+            name='🍯 Weight 2',
+
+            line=dict(
+                color='#FF8C42',
+                width=6,
+                shape='spline'
+            ),
+
+            fill='tozeroy',
+
+            fillcolor='rgba(255,140,66,0.30)'
+        ))
+
+        fig.update_layout(
+
+            template="plotly_dark",
+
+            height=520,
+
+            hovermode='x unified',
+
+            paper_bgcolor='#0f172a',
+
+            plot_bgcolor='#0f172a',
+
+            title={
+                'text': "📈 Daily Hive Trend",
+                'x': 0.5,
+                'font': dict(
+                    size=24,
+                    color='white'
+                )
+            },
+
+            font=dict(
+                color='white',
+                size=16
+            ),
+
+            legend=dict(
+                orientation="h",
+
+                yanchor="bottom",
+                y=1.02,
+
+                xanchor="center",
+                x=0.5,
+
+                font=dict(
+                    size=18,
+                    color='white'
+                ),
+
+                bgcolor='rgba(0,0,0,0)'
+            ),
+
+            xaxis=dict(
+
+                title="Time",
+
+                showgrid=False,
+
+                title_font=dict(
+                    size=20,
+                    color='white'
+                ),
+
+                tickfont=dict(
+                    size=15,
+                    color='white'
+                )
+            ),
+
+            yaxis=dict(
+
+                title="Weight (kg)",
+
+                gridcolor='rgba(255,255,255,0.1)',
+
+                title_font=dict(
+                    size=20,
+                    color='white'
+                ),
+
+                tickfont=dict(
+                    size=15,
+                    color='white'
+                )
+            )
         )
 
-        ax.plot(
-            plot_df['Timestamp'],
-            plot_df['Weight 2'],
-            color='orange',
-            linewidth=2,
-            label="Weight 2"
+        st.plotly_chart(
+            fig,
+            width='stretch'
         )
-
-        ax.legend()
-
-        ax.grid(True)
-
-        plt.xticks(rotation=30)
-
-        st.pyplot(fig)
 
     # =================================================
     # WEEK VIEW
@@ -739,15 +921,16 @@ with tab2:
 
         week_df['Week'] = week_df['Timestamp'].dt.to_period('W')
 
-        weekly = week_df.groupby('Week')[['Weight 1','Weight 2']].mean()
+        weekly = week_df.groupby('Week')[['Weight 1', 'Weight 2']].mean()
 
         weekly = weekly.reset_index()
 
-        st.subheader("📅 Weekly Cards")
+        st.markdown("### 📅 Weekly Analytics")
 
+        # WEEKLY CARDS
         cols = st.columns(3)
 
-        for i,row in weekly.iterrows():
+        for i, row in weekly.iterrows():
 
             col = cols[i % 3]
 
@@ -755,45 +938,102 @@ with tab2:
 
                 st.markdown(f"""
                 <div style="
-                background:black;
-                padding:15px;
-                border-radius:15px;
+                background:#111827;
+                padding:18px;
+                border-radius:18px;
                 margin-bottom:15px;
-                border:1px solid #d1d5db;
+                border:1px solid #374151;
                 ">
-                <h4 style="color:white;">📆 {row['Week']}</h4>
-                <p style="color:#cbd5e1;">⚖ W1 Avg : {row['Weight 1']:.2f}</p>
-                <p style="color:#cbd5e1;">🍯 W2 Avg : {row['Weight 2']:.2f}</p>
+                <h4 style="color:white;">
+                📆 {row['Week']}
+                </h4>
+
+                <p style="color:#34d399;">
+                ⚖ Weight 1 Avg :
+                {row['Weight 1']:.2f} kg
+                </p>
+
+                <p style="color:#fb923c;">
+                🍯 Weight 2 Avg :
+                {row['Weight 2']:.2f} kg
+                </p>
                 </div>
                 """, unsafe_allow_html=True)
 
-        fig, ax = plt.subplots(figsize=(12,5))
+        # WEEKLY GRAPH
+        fig = go.Figure()
 
-        ax.plot(
-            weekly['Week'].astype(str),
-            weekly['Weight 1'],
-            marker='o',
-            linewidth=2,
-            color='lime',
-            label="Weight 1"
+        fig.add_trace(go.Scatter(
+            x=weekly['Week'].astype(str),
+            y=weekly['Weight 1'],
+            mode='lines+markers',
+            name='🐝 Weight 1',
+
+            line=dict(
+                color='#00FFB3',
+                width=5
+            ),
+
+            marker=dict(
+                size=10
+            )
+        ))
+
+        fig.add_trace(go.Scatter(
+            x=weekly['Week'].astype(str),
+            y=weekly['Weight 2'],
+            mode='lines+markers',
+            name='🍯 Weight 2',
+
+            line=dict(
+                color='#FF8C42',
+                width=5
+            ),
+
+            marker=dict(
+                size=10
+            )
+        ))
+
+        fig.update_layout(
+
+            template="plotly_dark",
+
+            height=520,
+
+            paper_bgcolor='#0f172a',
+
+            plot_bgcolor='#0f172a',
+
+            title={
+                'text': "📊 Weekly Hive Analysis",
+                'x': 0.5,
+                'font': dict(
+                    size=24,
+                    color='white'
+                )
+            },
+
+            font=dict(
+                color='white',
+                size=16
+            ),
+
+            legend=dict(
+                font=dict(
+                    size=18
+                )
+            ),
+
+            xaxis_title="Week",
+
+            yaxis_title="Average Weight (kg)"
         )
 
-        ax.plot(
-            weekly['Week'].astype(str),
-            weekly['Weight 2'],
-            marker='o',
-            linewidth=2,
-            color='orange',
-            label="Weight 2"
+        st.plotly_chart(
+            fig,
+            width='stretch'
         )
-
-        ax.legend()
-
-        ax.grid(True)
-
-        plt.xticks(rotation=30)
-
-        st.pyplot(fig)
 
     # =================================================
     # MONTH VIEW
@@ -804,40 +1044,81 @@ with tab2:
 
         month_df['Month'] = month_df['Timestamp'].dt.to_period('M')
 
-        monthly = month_df.groupby('Month')[['Weight 1','Weight 2']].mean()
+        monthly = month_df.groupby('Month')[['Weight 1', 'Weight 2']].mean()
 
         monthly = monthly.reset_index()
 
-        st.subheader("📅 Monthly Analytics")
+        st.markdown("### 📅 Monthly Analytics")
 
-        fig, ax = plt.subplots(figsize=(12,5))
+        fig = go.Figure()
 
-        ax.bar(
-            monthly['Month'].astype(str),
-            monthly['Weight 1'],
-            label="Weight 1"
+        # BAR GRAPH
+        fig.add_trace(go.Bar(
+            x=monthly['Month'].astype(str),
+            y=monthly['Weight 1'],
+            name='🐝 Weight 1',
+            marker_color='#00FFB3'
+        ))
+
+        # LINE GRAPH
+        fig.add_trace(go.Scatter(
+            x=monthly['Month'].astype(str),
+            y=monthly['Weight 2'],
+            mode='lines+markers',
+            name='🍯 Weight 2',
+
+            line=dict(
+                color='#FF8C42',
+                width=5
+            ),
+
+            marker=dict(
+                size=10
+            )
+        ))
+
+        fig.update_layout(
+
+            template="plotly_dark",
+
+            barmode='group',
+
+            height=520,
+
+            paper_bgcolor='#0f172a',
+
+            plot_bgcolor='#0f172a',
+
+            title={
+                'text': "📈 Monthly Hive Performance",
+                'x': 0.5,
+                'font': dict(
+                    size=24,
+                    color='white'
+                )
+            },
+
+            font=dict(
+                color='white',
+                size=16
+            ),
+
+            legend=dict(
+                font=dict(
+                    size=18
+                )
+            ),
+
+            xaxis_title="Month",
+
+            yaxis_title="Average Weight (kg)"
         )
 
-        ax.plot(
-            monthly['Month'].astype(str),
-            monthly['Weight 2'],
-            marker='o',
-            linewidth=3,
-            color='red',
-            label="Weight 2"
+        st.plotly_chart(
+            fig,
+            width='stretch'
         )
 
-        ax.legend()
-
-        ax.grid(True)
-
-        plt.xticks(rotation=30)
-
-        st.pyplot(fig)
-
-# =====================================================
-# =====================================================
-# # =====================================================
 # TAB 3
 # =====================================================
 
