@@ -453,26 +453,14 @@ else:
         "📈 Trends"
     ])
 
-# =====================================================
-# T# =====================================================
-# TAB 1 : REAL TIME MONITORING
-# =====================================================
 with tab1:
 
     from datetime import datetime, time
 
     st.subheader("📈 Real Time Hive Weight Monitoring")
 
-    # =========================
-    # CURRENT DATE & TIME
-    # =========================
     now = datetime.now()
-
     today = now.date()
-
-    # =========================
-    # FILTER TODAY DATA
-    # =========================
     start_time = time(5, 0)
 
     realtime_df = filtered[
@@ -482,82 +470,57 @@ with tab1:
     ]
 
     # =========================
+    # EMPTY CHECK (FIXED)
     # =========================
-# EMPTY CHECK
-# =========================
-# =========================
-# EMPTY CHECK
-# =========================
-if realtime_df.empty:
+    if realtime_df.empty:
 
-    st.error("🔴 MGIRI Hive Device Offline")
+        st.error("🔴 MGIRI Hive Device Offline")
 
-    # LAST AVAILABLE DATA
-    if not filtered.empty:
+        if not filtered.empty:
+            last_record = filtered.iloc[-1]
 
-        last_record = filtered.iloc[-1]
+            st.info(f"🕒 Last Update: {last_record['Timestamp']}")
 
-        st.info(
-            f"🕒 Last Update: "
-            f"{last_record['Timestamp']}"
-        )
+            st.metric(
+                "🐝 Last Weight",
+                f"{last_record['Weight 2']:.2f} kg"
+            )
 
-        st.metric(
-            "🐝 Last Weight",
-            f"{last_record['Weight 2']:.2f} kg"
-        )
-
-    st.warning("📡 Waiting for internet connection...")
-
-else:
+        st.warning("📡 Waiting for internet connection...")
+        st.stop()   # ⭐ IMPORTANT FIX
 
     # =========================
-    # DATA
+    # SAFE DATA ACCESS
     # =========================
     plot_df = realtime_df
 
     latest_w1 = realtime_df['Weight 1'].iloc[-1]
-
     latest_w2 = realtime_df['Weight 2'].iloc[-1]
-
     start_weight = realtime_df['Weight 2'].iloc[0]
 
     change = latest_w2 - start_weight
 
     # =========================
-    # METRIC CARDS
+    # METRICS
     # =========================
     col1, col2, col3 = st.columns(3)
 
-    col1.metric(
-        "🐝 Current Weight 1",
-        f"{latest_w1:.2f} kg"
-    )
-
-    col2.metric(
-        "🍯 Current Weight 2",
-        f"{latest_w2:.2f} kg"
-    )
-
-    col3.metric(
-        "📈 Daily Change",
-        f"{change:.2f} kg"
-    )
+    col1.metric("🐝 Current Weight 1", f"{latest_w1:.2f} kg")
+    col2.metric("🍯 Current Weight 2", f"{latest_w2:.2f} kg")
+    col3.metric("📈 Daily Change", f"{change:.2f} kg")
 
     # =========================
+    # STATUS (SAFE NOW)
     # =========================
-# LIVE STATUS
-# =========================
-status1, status2, status3 = st.columns(3)
+    status1, status2, status3 = st.columns(3)
 
-status1.success("🟢 Device Online")
+    status1.success("🟢 Device Online")
 
-status2.info(
-    f"🕒 Updated: "
-    f"{realtime_df['Timestamp'].iloc[-1].strftime('%I:%M %p')}"
-)
+    status2.info(
+        f"🕒 Updated: {realtime_df['Timestamp'].iloc[-1].strftime('%I:%M %p')}"
+    )
 
-status3.warning("📡 Live Monitoring Active")
+    status3.warning("📡 Live Monitoring Active")
 
 # =========================
 # LIVE INFO BOX
